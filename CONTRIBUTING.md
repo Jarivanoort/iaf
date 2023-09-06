@@ -5,10 +5,6 @@
 Thanks for reading this we're glad you're taking an interest in contributing to our framework.
 We want you working on things you're excited about, there are however plenty of [issues](https://github.com/ibissource/iaf/issues) that can be picked up.
 
-**Please be advised that we use our own repository manager for snapshot builds.**
-Either use our public `ibissource` or private `proprietary` profile when running Maven.
-
-
 ## Running the Frank!Framework
 
 If you want to experiment with the Frank!Framework, you can use the [Frank!Runner](https://github.com/ibissource/frank-runner). If you want to stick with Maven, you can follow the instructions of this section.
@@ -105,6 +101,8 @@ WeAreFrank! has introduced [Project Lombok](https://projectlombok.org/) in this 
 
 * With Lombok, you do not have to code getters and setters anymore. You can generate them by by putting annotations `@Getter` and `@Setter` on the backing field. This is very useful. But please do NOT put the `@Getter` or `@Setter` on the class. This makes fewer lines of code, but there is a drawback. You cannot see the call hierarchy anymore of a getter or a setter. When you put the annotations on the method level, you can still see the call hierarchy: right-click the `@Getter` or `@Setter` and select "Open Call Hierarchy" in Eclipse.
 * For the sake of readability, please put the `@Getter` or `@Setter` annotations inside the variable declaration: "`private @Getter @Setter MyType myField`".
+
+See our [Additional Coding Guidelines](AdditionalCodingGuidelines.md) for code examples to help create more readable, testable and maintainable code.
 
 ## Testing
 

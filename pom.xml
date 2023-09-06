@@ -11,10 +11,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<log4j2.version>2.20.0</log4j2.version>
 
+		<sonar.organization>frank-framework</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+
 		<jackson.version>2.15.2</jackson.version>
 		<cxf.version>3.5.6</cxf.version>
 		<spring.version>5.3.29</spring.version>
-		<spring-security.version>5.8.5</spring-security.version>
+		<spring-security.version>5.8.6</spring-security.version>
 		<spring-integration.version>5.5.18</spring-integration.version>
 
 		<btm.version>3.0.0-mk1</btm.version>
@@ -32,6 +35,7 @@
 		<oracle.driver.jdkversion>8</oracle.driver.jdkversion>
 		<mssql.driver.version>7.4.1.jre8</mssql.driver.version>
 		<mysql.driver.version>8.1.0</mysql.driver.version>
+		<!-- Should upgrade to new MariaDB driver 3.1.4, 3.2.0 or newer for JDK17 support but currently not working with XA transaction managers in the framework. -->
 		<mariadb.driver.version>2.7.9</mariadb.driver.version>
 		<postgresql.driver.version>42.6.0</postgresql.driver.version>
 		<mongodb.driver.version>4.10.2</mongodb.driver.version>
@@ -56,26 +60,32 @@
 		<license>
 			<name>Apache License, Version 2.0</name>
 			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-			<distribution>manual</distribution>
+			<distribution>repo</distribution>
 		</license>
 	</licenses>
 
 	<developers>
 		<developer>
-			<name>Jaco de Groot</name>
-			<email>jaco@ibissource.org</email>
+			<name>Niels Meijer</name>
+			<email>niels@frankframework.org</email>
 			<organization>Frank!Framework</organization>
 			<organizationUrl>https://frankframework.org</organizationUrl>
 		</developer>
 		<developer>
-			<name>Niels Meijer</name>
-			<email>niels@ibissource.org</email>
+			<name>Tim van der Leeuw</name>
+			<email>tim@frankframework.org</email>
 			<organization>Frank!Framework</organization>
 			<organizationUrl>https://frankframework.org</organizationUrl>
 		</developer>
 		<developer>
 			<name>Ali Sihab Akcan</name>
 			<email>ali@ibissource.org</email>
+			<organization>Frank!Framework</organization>
+			<organizationUrl>https://frankframework.org</organizationUrl>
+		</developer>
+		<developer>
+			<name>Jaco de Groot</name>
+			<email>jaco@ibissource.org</email>
 			<organization>Frank!Framework</organization>
 			<organizationUrl>https://frankframework.org</organizationUrl>
 		</developer>
@@ -1018,6 +1028,13 @@
 		<tag>HEAD</tag>
 	</scm>
 
+	<repositories>
+		<repository>
+			<id>ibissource</id>
+			<url>https://nexus.frankframework.org/content/groups/public</url>
+		</repository>
+	</repositories>
+
 	<profiles>
 		<profile>
 			<id>ossrh</id>
@@ -1091,12 +1108,6 @@
 					<url>file:target/site-deploy</url>
 				</site>
 			</distributionManagement>
-			<repositories>
-				<repository>
-					<id>ibissource</id>
-					<url>https://nexus.frankframework.org/content/groups/public</url>
-				</repository>
-			</repositories>
 		</profile>
 		<profile>
 			<id>default-modules</id><!-- Profile defaults to ON, when the property is set it will turn off -->
