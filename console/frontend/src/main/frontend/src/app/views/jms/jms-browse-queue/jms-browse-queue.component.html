@@ -59,7 +59,7 @@
                                 <button class="btn btn-info btn-w-m font-bold" type="button" (click)="reset()">Reset</button>
                             </div>
                             <div class="col-xs-5 col-md-3 m-t-md">
-                                <button [ladda]="processing" class="btn btn-primary btn-w-m font-bold" type="submit" (click)="submit(form)">Send</button>
+                                <button ladda="processing" class="btn btn-primary btn-w-m font-bold" type="submit" (click)="submit(form)">Send</button>
                             </div>
                         </div>
                     </form>
@@ -85,7 +85,7 @@
                         <tbody>
                             <tr *ngFor="let message of messages; let i = index">
                                 <td>{{ i + 1 }}</td>
-                                <td to-date>{{message['insertDate']}}</td>
+                                <!--TODO: <td to-date time="{{::message.insertDate}}"></td> --> 
                                 <td>{{message['id']}}</td>
                                 <td>{{message['correlationId']}}</td>
                                 <td *ngIf="message['text']">{{message['text']}}</td>

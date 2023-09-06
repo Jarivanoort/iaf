@@ -4,10 +4,7 @@ import { UpgradeModule, downgradeComponent } from '@angular/upgrade/static';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { $stateServiceProvider } from './ajs-deps-services';
 import { UIRouterUpgradeModule } from '@uirouter/angular-hybrid';
-
 import { AppRoutingModule } from './app-routing.module';
-import { InjectionToken } from '@angular/core';
-import { InputFileUploadController } from 'src/angularjs/app/components/input-file-upload/input-file-upload.component';
 
 import '../angularjs/main';
 import '../angularjs/app/app.module';
