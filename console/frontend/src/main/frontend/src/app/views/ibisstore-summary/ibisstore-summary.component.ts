@@ -36,7 +36,7 @@ export class IbisstoreSummaryComponent implements OnInit {
     //   var datasource = this.$location.search().datasource;
     //   this.fetch(datasource);
     // };
-    console.warn("Location search doesn't exist anymore, needs angular new router module to reacreate functionality")
+    console.warn("Location search doesn't exist anymore, needs angular new router module to recreate functionality")
   }
 
   fetch(datasource: []) {
