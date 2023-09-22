@@ -1,15 +1,22 @@
+import { ViewportScroller } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { StateService } from "@uirouter/angularjs";
-import { appModule } from "../../app.module";
-import { Adapter, Alert, AppService, Configuration, MessageLog, MessageSummary, Receiver, Summary } from "../../app.service";
-import { ConfigurationFilter } from "../../filters/configuration-filter.filter";
-import { ApiService } from "../../services/api.service";
-import { PollerService } from "../../services/poller.service";
-import { MiscService } from "../../services/misc.service";
+import { Adapter, AdapterStatus, Alert, AppService, Configuration, MessageLog, MessageSummary, Receiver, Summary } from 'src/angularjs/app/app.service';
+import { ApiService } from 'src/angularjs/app/services/api.service';
+import { MiscService } from 'src/angularjs/app/services/misc.service';
+import { PollerService } from 'src/angularjs/app/services/poller.service';
+import { ConfigurationFilter } from 'src/app/pipes/configuration-filter.pipe';
+import { StatusService } from './status.service';
 
-type Filter = Record<'started' | 'stopped' | 'warning', boolean>;
+type Filter = Record<AdapterStatus, boolean>;
 
-class StatusController {
-
+@Component({
+  selector: 'app-status',
+  templateUrl: './status.component.html',
+  styleUrls: ['./status.component.scss']
+})
+export class StatusComponent implements OnInit {
   filter: Filter = {
     started: true,
     stopped: true,
@@ -24,6 +31,8 @@ class StatusController {
   configurationFlowDiagram: string | null = null;
   isConfigStubbed: Record<string, boolean> = {};
   isConfigReloading: Record<string, boolean> = {};
+  msgBoxExpanded = false;
+  adapterShowContent: Record<keyof typeof this.adapters, boolean> = {}
 
   adapterSummary: Summary = {
     started: 0,
@@ -50,32 +59,34 @@ class StatusController {
   };
   alerts: Alert[] = [];
   messageLog: Record<string, MessageLog> = {};
+
   // functions
   getProcessStateIcon = this.appService.getProcessStateIcon;
   getProcessStateIconColor = this.appService.getProcessStateIconColor;
 
   constructor(
-    private $scope: angular.IScope,
-    private $rootScope: angular.IRootScopeService,
+    public $state: StateService,
     private Api: ApiService,
     private Poller: PollerService,
-    private $filter: angular.IFilterService,
-    private $state: StateService,
+    // private $filter: angular.IFilterService,
     private Misc: MiscService,
-    private $anchorScroll: angular.IAnchorScrollService,
-    private $location: angular.ILocationService,
-    private $http: angular.IHttpService,
+    private viewportScroller: ViewportScroller, // private $anchorScroll: angular.IAnchorScrollService,
+    private route: ActivatedRoute, // private $location: angular.ILocationService,
+    private router: Router,
+    private statusService: StatusService, // private $http: angular.IHttpService,
     private appService: AppService
   ) { }
 
-  $onInit() {
-    var hash = this.$location.hash();
-    this.adapterName = this.$state.params["adapter"];
-    if (this.adapterName == "" && hash != "") { //If the adapter param hasn't explicitly been set
-      this.adapterName = hash;
-    } else {
-      this.$location.hash(this.adapterName);
-    }
+  ngOnInit() {
+    this.route.fragment.subscribe(fragment => {
+      const hash = fragment ?? ""; // var hash = this.$location.hash();
+      this.adapterName = this.$state.params["adapter"];
+      if (this.adapterName == "" && hash != "") { //If the adapter param hasn't explicitly been set
+        this.adapterName = hash;
+      } else {
+        this.router.navigate([], { relativeTo: this.route, fragment: hash }); // this.$location.hash(this.adapterName);
+      }
+    });
 
     if (this.$state.params["filter"] != "") {
       var filter = this.$state.params["filter"].split("+");
@@ -104,29 +115,25 @@ class StatusController {
       this.receiverSummary = this.appService.receiverSummary;
       this.messageSummary = this.appService.messageSummary;
     });
-    this.appService.alerts$.subscribe(() => { this.alerts = this.appService.alerts; });
-    this.appService.messageLog$.subscribe(() => { this.messageLog = this.appService.messageLog; });
-    this.appService.adapters$.subscribe(() => { this.adapters = this.appService.adapters; });
+    this.appService.alerts$.subscribe(() => { this.alerts = [...this.appService.alerts]; });
+    this.appService.messageLog$.subscribe(() => { this.messageLog = {...this.appService.messageLog}; });
+    this.appService.adapters$.subscribe(() => {
+      this.adapters = {...this.appService.adapters};
+      this.updateAdapterShownContent();
+    });
 
     if (this.$state.params["configuration"] != "All")
       this.changeConfiguration(this.$state.params["configuration"]);
-  };
-
-  showContent(adapter: Adapter) {
-    if (adapter.status == "stopped") {
-      return true;
-    } else if (this.adapterName != "" && adapter.name == this.adapterName) {
-      this.$anchorScroll();
-      return true;
-    } else {
-      return false;
-    }
   };
 
   applyFilter(filter: Filter) {
     this.filter = filter;
     this.updateQueryParams();
   };
+
+  showContent(adapter: Adapter) {
+    return this.adapterShowContent[adapter.name];
+  }
 
   updateQueryParams() {
     var filterStr = [];
@@ -145,40 +152,19 @@ class StatusController {
   };
 
   collapseAll() {
-    $(".adapters").each((i, e) => {
-      var a = $(e).find("div.ibox-title");
-      // @ts-expect-error unknown property on scope
-      angular.element(a).scope().showContent = false;
-    });
-  };
+    Object.keys(this.adapters)
+      .forEach(adapter => this.adapterShowContent[adapter] = false);
+  }
+
   expandAll() {
-    $(".adapters").each((i, e) => {
-      setTimeout(() => {
-        var a = $(e).find("div.ibox-title");
-        // @ts-expect-error unknown property on scope
-        angular.element(a).scope().showContent = true;
-      }, i * 10);
-    });
+    Object.keys(this.adapters)
+      .forEach(adapter => this.adapterShowContent[adapter] = true);
   };
   stopAll() {
-    let compiledAdapterList = Array();
-    // let adapters = $filter('configurationFilter')($scope.adapters, $scope);
-    let adapters = this.$filter<ConfigurationFilter>('configurationFilter')(this.adapters, this);
-    for (const adapter in adapters) {
-      let configuration = adapters[adapter].configuration;
-      compiledAdapterList.push(configuration + "/" + adapter);
-    }
-    this.Api.Put("adapters", { "action": "stop", "adapters": compiledAdapterList });
+    this.Api.Put("adapters", { "action": "stop", "adapters": this.getCompiledAdapterList() });
   };
   startAll() {
-    let compiledAdapterList = Array();
-    // let adapters = $filter('configurationFilter')($scope.adapters, $scope);
-    let adapters = this.$filter<ConfigurationFilter>('configurationFilter')(this.adapters, this);
-    for (const adapter in adapters) {
-      let configuration = adapters[adapter].configuration;
-      compiledAdapterList.push(configuration + "/" + adapter);
-    }
-    this.Api.Put("adapters", { "action": "start", "adapters": compiledAdapterList });
+    this.Api.Put("adapters", { "action": "start", "adapters": this.getCompiledAdapterList() });
   };
   reloadConfiguration() {
     if (this.selectedConfiguration == "All") return;
@@ -225,15 +211,17 @@ class StatusController {
 
   showReferences() {
     window.open(this.configurationFlowDiagram!);
-  };
+  }
+
   updateConfigurationFlowDiagram(configurationName: string) {
-    var url = this.Misc.getServerPath() + 'iaf/api/configurations/';
+    let flowUrl: string;
     if (configurationName == "All") {
-      url += "?flow=true";
+      flowUrl = "?flow=true";
     } else {
-      url += configurationName + "/flow";
+      flowUrl = configurationName + "/flow";
     }
-    this.$http.get(url).then((data) => {
+
+    this.statusService.getConfigurationFlowDiagram(flowUrl).subscribe(({ data, url }) => {
       let status = (data && data.status) ? data.status : 204;
       if (status == 200) {
         this.configurationFlowDiagram = url;
@@ -248,49 +236,79 @@ class StatusController {
       this.isConfigStubbed[config.name] = config.stubbed;
       this.isConfigReloading[config.name] = config.state == "STARTING" || config.state == "STOPPING"; //Assume reloading when in state STARTING (LOADING) or in state STOPPING (UNLOADING)
     }
-  };
+  }
 
   // Commented out in template, so unused
   closeAlert(index: number) {
     this.appService.alerts.splice(index, 1);
     this.appService.updateAlerts(this.appService.alerts);
-  };
+  }
 
   changeConfiguration(name: string) {
     this.selectedConfiguration = name;
     this.appService.updateAdapterSummary(name);
     this.updateQueryParams();
     this.updateConfigurationFlowDiagram(name);
-  };
+  }
+
+  getTransactionalStores(receiver: Receiver) {
+    return Object.values(receiver.transactionalStores);
+  }
+
+  getMessageLog(selectedConfiguration: string){
+    return this.messageLog[selectedConfiguration].messages ?? [];
+  }
 
   startAdapter(adapter: Adapter) {
     adapter.state = 'starting';
     this.Api.Put("configurations/" + adapter.configuration + "/adapters/" + this.Misc.escapeURL(adapter.name), { "action": "start" });
-  };
+  }
   stopAdapter(adapter: Adapter) {
     adapter.state = 'stopping';
     this.Api.Put("configurations/" + adapter.configuration + "/adapters/" + this.Misc.escapeURL(adapter.name), { "action": "stop" });
-  };
+  }
   startReceiver(adapter: Adapter, receiver: Receiver) {
     receiver.state = 'loading';
     this.Api.Put("configurations/" + adapter.configuration + "/adapters/" + this.Misc.escapeURL(adapter.name) + "/receivers/" + this.Misc.escapeURL(receiver.name), { "action": "start" });
-  };
+  }
   stopReceiver(adapter: Adapter, receiver: Receiver) {
     receiver.state = 'loading';
     this.Api.Put("configurations/" + adapter.configuration + "/adapters/" + this.Misc.escapeURL(adapter.name) + "/receivers/" + this.Misc.escapeURL(receiver.name), { "action": "stop" });
-  };
+  }
   addThread(adapter: Adapter, receiver: Receiver) {
     receiver.state = 'loading';
     this.Api.Put("configurations/" + adapter.configuration + "/adapters/" + this.Misc.escapeURL(adapter.name) + "/receivers/" + this.Misc.escapeURL(receiver.name), { "action": "incthread" });
-  };
+  }
   removeThread(adapter: Adapter, receiver: Receiver) {
     receiver.state = 'loading';
     this.Api.Put("configurations/" + adapter.configuration + "/adapters/" + this.Misc.escapeURL(adapter.name) + "/receivers/" + this.Misc.escapeURL(receiver.name), { "action": "decthread" });
+  }
+
+  private getCompiledAdapterList() {
+    const compiledAdapterList: string[] = [];
+    // let adapters = $filter('configurationFilter')($scope.adapters, $scope);
+    const adapters = ConfigurationFilter(this.adapters, this.selectedConfiguration, this.filter);
+    for (const adapter in adapters) {
+      const configuration = adapters[adapter].configuration;
+      compiledAdapterList.push(configuration + "/" + adapter);
+    }
+  }
+
+  private determineShowContent(adapter: Adapter) {
+    if (adapter.status == "stopped") {
+      return true;
+    } else if (this.adapterName != "" && adapter.name == this.adapterName) {
+      this.viewportScroller.scrollToAnchor(this.adapterName); // this.$anchorScroll();
+      return true;
+    } else {
+      return false;
+    }
   };
 
-};
-
-appModule.component('status', {
-  controller: ['$scope', '$rootScope', 'Api', 'Poller', '$filter', '$state', 'Misc', '$anchorScroll', '$location', '$http', 'appService', StatusController],
-  templateUrl: 'angularjs/app/views/status/status.component.html',
-});
+  private updateAdapterShownContent() {
+    for (const adapter in this.adapters) {
+      if (!this.adapterShowContent.hasOwnProperty(adapter))
+        this.adapterShowContent[adapter] = this.determineShowContent(this.adapters[adapter]);
+    }
+  }
+}
